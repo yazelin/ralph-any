@@ -35,6 +35,7 @@ class FakeAcpClient:
         self.on_text = lambda fn: fn
         self.on_tool_start = lambda fn: fn
         self.on_tool_end = lambda fn: fn
+        self.on_permission = lambda fn: fn
         self.on_error = lambda fn: fn
 
     async def __aenter__(self):
@@ -44,9 +45,6 @@ class FakeAcpClient:
         pass
 
     async def prompt(self, text: str) -> str:
-        # Skip system prompt call
-        if text.startswith("/system "):
-            return "ok"
         idx = min(self._call_count, len(self._responses) - 1)
         resp = self._responses[idx]
         self._call_count += 1
@@ -84,8 +82,6 @@ def test_max_iterations(mock_cls):
 @patch("ralph.engine.AcpClient")
 def test_timeout(mock_cls):
     async def slow_prompt(text: str) -> str:
-        if text.startswith("/system "):
-            return "ok"
         await asyncio.sleep(5)
         return "never"
 

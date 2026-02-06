@@ -63,6 +63,19 @@ class RalphEngine:
             icon = "✔️" if status == "completed" else "❌"
             print(f" {icon} {status}", flush=True)
 
+        @client.on_permission
+        async def on_permission(name: str, input: dict, options: list) -> str:
+            # Auto-allow all tool executions in the loop.
+            # Pick the first "allow" style option from what the agent offers.
+            for opt in options:
+                opt_id = opt if isinstance(opt, str) else opt.get("id", "")
+                if opt_id in ("allow", "allow_always", "proceed_once"):
+                    return opt_id
+            # Fallback: return the first option's id
+            if options:
+                return options[0] if isinstance(options[0], str) else options[0].get("id", "allow")
+            return "allow"
+
         @client.on_error
         async def on_error(exception: Exception) -> None:
             print(f"\n⚠️  Error: {exception}", file=sys.stderr, flush=True)
@@ -73,8 +86,6 @@ class RalphEngine:
         start = time.monotonic()
 
         async with self.client:
-            await self.client.prompt(f"/system {system_prompt}")
-
             for i in range(1, config.max_iterations + 1):
                 elapsed = time.monotonic() - start
                 if elapsed >= config.timeout_seconds:
@@ -87,6 +98,7 @@ class RalphEngine:
                 print(f"\n━━━ Iteration {i}/{config.max_iterations} ━━━", flush=True)
 
                 prompt = (
+                    f"{system_prompt}\n\n---\n\n"
                     f"[Iteration {i}/{config.max_iterations}]\n\n{config.prompt}"
                 )
 
