@@ -23,21 +23,65 @@ uv tool install ralph-any
 ralph "Refactor utils.py to use dataclasses"
 
 # Gemini CLI
-ralph "Fix the failing tests" --command gemini --command-args --experimental-acp
+ralph "Fix the failing tests" --command gemini --command-args="--experimental-acp"
 
 # Read task from a file
 ralph task.md -m 20
+
+# Auto-detect: just place a ralph.md in your project and run
+ralph
+```
+
+## Config File (`ralph.yml`)
+
+Place a `ralph.yml` (or `ralph.yaml`) in your project root to avoid repeating CLI args:
+
+```yaml
+# ralph.yml
+command: gemini
+command_args: --experimental-acp
+max_iterations: 20
+timeout: 3600
+promise: Done!
+```
+
+Then just run:
+
+```bash
+ralph "your task"
+
+# CLI args override the config file
+ralph "your task" -m 5
+```
+
+**Priority**: CLI args > `ralph.yml` > defaults
+
+## Auto-Detect Prompt
+
+If no prompt argument is given, Ralph looks for these files in the working directory (in order):
+
+1. `ralph.md`
+2. `TASK.md`
+3. `ralph.txt`
+4. `TASK.txt`
+
+```bash
+# Create a prompt file in your project
+echo "Refactor all utils to use dataclasses" > ralph.md
+
+# Run with zero arguments
+ralph
 ```
 
 ## CLI Usage
 
 ```
-ralph <prompt> [options]
+ralph [prompt] [options]
 ```
 
 | Option | Short | Default | Description |
 |--------|-------|---------|-------------|
-| `prompt` | | *(required)* | Task description, or path to `.md`/`.txt` file |
+| `prompt` | | *(auto-detect)* | Task description, path to `.md`/`.txt` file, or auto-detected |
 | `--max-iterations` | `-m` | `10` | Maximum loop iterations |
 | `--timeout` | `-t` | `1800` | Maximum runtime in seconds (30 min) |
 | `--promise` | | `任務完成！🥇` | Completion phrase the AI must output |
@@ -134,13 +178,14 @@ Environment variables are automatically inherited by the child process — no ex
 
 ## Architecture
 
-6 core files, ported from [copilot-ralph](https://github.com/yazelin/copilot-ralph) (19+ TS files):
+7 core files, ported from [copilot-ralph](https://github.com/yazelin/copilot-ralph) (19+ TS files):
 
 ```
 src/ralph/
 ├── __init__.py    # Version + exports
 ├── __main__.py    # python -m ralph entry
-├── cli.py         # argparse CLI (8 options)
+├── cli.py         # argparse CLI + auto-detect
+├── config.py      # ralph.yml loader
 ├── engine.py      # Ralph Loop engine (AcpClient)
 ├── prompt.py      # System prompt template
 └── detect.py      # Promise detection (~5 lines)

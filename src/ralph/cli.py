@@ -7,7 +7,9 @@ import asyncio
 import shlex
 import sys
 from pathlib import Path
+from typing import Any
 
+from ralph.config import load_config_file
 from ralph.engine import LoopConfig, RalphEngine
 
 EXIT_SUCCESS = 0
@@ -24,6 +26,9 @@ _STATE_TO_EXIT = {
     "max_iterations": EXIT_MAX_ITERATIONS,
 }
 
+# Auto-detected prompt files, checked in order.
+_AUTO_PROMPT_FILES = ("ralph.md", "TASK.md", "ralph.txt", "TASK.txt")
+
 
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -32,38 +37,40 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "prompt",
-        help="Task description, or path to a .md/.txt file",
+        nargs="?",
+        default=None,
+        help="Task description, or path to a .md/.txt file (auto-detects ralph.md / TASK.md)",
     )
     p.add_argument(
         "-m", "--max-iterations",
         type=int,
-        default=10,
+        default=None,
         help="Maximum loop iterations (default: 10)",
     )
     p.add_argument(
         "-t", "--timeout",
         type=int,
-        default=1800,
+        default=None,
         help="Maximum runtime in seconds (default: 1800 = 30m)",
     )
     p.add_argument(
         "--promise",
-        default="任務完成！🥇",
+        default=None,
         help="Completion promise phrase (default: 任務完成！🥇)",
     )
     p.add_argument(
         "-c", "--command",
-        default="claude-code-acp",
+        default=None,
         help="ACP CLI command (default: claude-code-acp)",
     )
     p.add_argument(
         "--command-args",
-        default="",
+        default=None,
         help="Extra arguments for the ACP CLI (e.g. '--experimental-acp')",
     )
     p.add_argument(
         "-d", "--working-dir",
-        default=".",
+        default=None,
         help="Working directory (default: .)",
     )
     p.add_argument(
@@ -80,6 +87,17 @@ def _resolve_prompt(raw: str) -> str:
     if p.is_file() and p.suffix in (".md", ".txt"):
         return p.read_text(encoding="utf-8")
     return raw
+
+
+def _auto_detect_prompt(working_dir: str) -> str | None:
+    """Look for a default prompt file in the working directory."""
+    base = Path(working_dir)
+    for name in _AUTO_PROMPT_FILES:
+        p = base / name
+        if p.is_file():
+            print(f"📄 Auto-detected prompt file: {p}", flush=True)
+            return p.read_text(encoding="utf-8")
+    return None
 
 
 def _run(config: LoopConfig) -> int:
@@ -100,18 +118,49 @@ def main(argv: list[str] | None = None) -> None:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
-    prompt_text = _resolve_prompt(args.prompt)
+    # Layer 1: defaults
+    cfg: dict[str, Any] = {
+        "prompt": None,
+        "promise_phrase": "任務完成！🥇",
+        "command": "claude-code-acp",
+        "command_args": [],
+        "working_dir": ".",
+        "max_iterations": 10,
+        "timeout_seconds": 1800,
+        "dry_run": False,
+    }
 
-    config = LoopConfig(
-        prompt=prompt_text,
-        promise_phrase=args.promise,
-        command=args.command,
-        command_args=shlex.split(args.command_args) if args.command_args else [],
-        working_dir=args.working_dir,
-        max_iterations=args.max_iterations,
-        timeout_seconds=args.timeout,
-        dry_run=args.dry_run,
-    )
+    # Layer 2: ralph.yml (overrides defaults)
+    file_cfg = load_config_file(args.working_dir or ".")
+    if file_cfg:
+        cfg.update({k: v for k, v in file_cfg.items() if v is not None})
+
+    # Layer 3: CLI args (overrides config file)
+    if args.prompt is not None:
+        cfg["prompt"] = _resolve_prompt(args.prompt)
+    if args.max_iterations is not None:
+        cfg["max_iterations"] = args.max_iterations
+    if args.timeout is not None:
+        cfg["timeout_seconds"] = args.timeout
+    if args.promise is not None:
+        cfg["promise_phrase"] = args.promise
+    if args.command is not None:
+        cfg["command"] = args.command
+    if args.command_args is not None:
+        cfg["command_args"] = shlex.split(args.command_args)
+    if args.working_dir is not None:
+        cfg["working_dir"] = args.working_dir
+    if args.dry_run:
+        cfg["dry_run"] = True
+
+    # Auto-detect prompt file if no prompt given
+    if cfg["prompt"] is None:
+        cfg["prompt"] = _auto_detect_prompt(cfg["working_dir"])
+
+    if cfg["prompt"] is None:
+        parser.error("prompt is required (provide as argument or create ralph.md / TASK.md)")
+
+    config = LoopConfig(**cfg)
 
     if config.dry_run:
         print("Dry-run config:")
