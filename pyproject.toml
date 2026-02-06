@@ -1,6 +1,6 @@
 [project]
 name = "ralph-any"
-version = "0.1.0"
+version = "0.1.1"
 description = "Ralph Wiggum Loop — iterative AI dev loop via ACP (supports Claude, Gemini, and more)"
 requires-python = ">=3.10"
 license = "MIT"

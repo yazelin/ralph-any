@@ -42,7 +42,7 @@ ralph <prompt> [options]
 | `--timeout` | `-t` | `1800` | Maximum runtime in seconds (30 min) |
 | `--promise` | | `任務完成！🥇` | Completion phrase the AI must output |
 | `--command` | `-c` | `claude-code-acp` | ACP CLI command |
-| `--command-args` | | | Extra arguments for the ACP CLI |
+| `--command-args` | | | Extra arguments for the ACP CLI (use `=` syntax) |
 | `--working-dir` | `-d` | `.` | Working directory |
 | `--dry-run` | | | Show config without running |
 

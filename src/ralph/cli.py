@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import shlex
 import sys
 from pathlib import Path
 
@@ -57,9 +58,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--command-args",
-        nargs="*",
-        default=[],
-        help="Extra arguments for the ACP CLI",
+        default="",
+        help="Extra arguments for the ACP CLI (e.g. '--experimental-acp')",
     )
     p.add_argument(
         "-d", "--working-dir",
@@ -106,7 +106,7 @@ def main(argv: list[str] | None = None) -> None:
         prompt=prompt_text,
         promise_phrase=args.promise,
         command=args.command,
-        command_args=args.command_args,
+        command_args=shlex.split(args.command_args) if args.command_args else [],
         working_dir=args.working_dir,
         max_iterations=args.max_iterations,
         timeout_seconds=args.timeout,
