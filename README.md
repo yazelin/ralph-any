@@ -112,6 +112,26 @@ I will create the `hello.py` file with the specified content.
 
 Both agents completed the task in 1 iteration with promise detection working correctly.
 
+## Using Your Own API Key (BYOK)
+
+ralph-any doesn't handle API keys — authentication is managed by the ACP CLI you choose. Just set the environment variable as you normally would for that CLI:
+
+```bash
+# Claude (subscription — no key needed)
+claude /login
+ralph "Build a REST API"
+
+# Claude (BYOK)
+export ANTHROPIC_API_KEY=sk-xxx
+ralph "Build a REST API"
+
+# Gemini (BYOK)
+export GEMINI_API_KEY=xxx
+ralph "Build a REST API" --command gemini --command-args="--experimental-acp"
+```
+
+Environment variables are automatically inherited by the child process — no extra config needed.
+
 ## Architecture
 
 6 core files, ported from [copilot-ralph](https://github.com/yazelin/copilot-ralph) (19+ TS files):
@@ -128,10 +148,16 @@ src/ralph/
 
 | Aspect | copilot-ralph (TS) | ralph-any (Py) |
 |--------|-------------------|----------------|
+| Source lines | 2,065 | 328 |
 | Files | 19+ | 6 |
 | AI Backend | Copilot SDK (single) | AcpClient (any ACP CLI) |
-| CLI | Commander (20+ params) | argparse (8 params) |
+| SDK wrapper | 651 lines (custom) | 0 (delegates to AcpClient) |
+| Event system | 12 event types + AsyncQueue | 5 decorators |
+| Retry logic | Custom 3x exponential backoff | Built into AcpClient |
+| CLI params | 18+ (incl. Azure BYOK) | 8 (provider config via ACP CLI) |
+| BYOK | 6 CLI params for Azure | env vars (handled by ACP CLI) |
 | Multi-AI | No | Yes (Claude, Gemini, any ACP) |
+| Dependencies | 9 | 2 |
 
 ## Development
 
