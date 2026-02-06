@@ -1,0 +1,29 @@
+[project]
+name = "ralph-any"
+version = "0.1.0"
+description = "Ralph Wiggum Loop — iterative AI dev loop via ACP (supports Claude, Gemini, and more)"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = ["claude-code-acp"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
+
+[project.scripts]
+ralph = "ralph.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ralph"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
