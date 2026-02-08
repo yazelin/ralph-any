@@ -178,7 +178,7 @@ Environment variables are automatically inherited by the child process — no ex
 
 ## Architecture
 
-7 core files, ported from [copilot-ralph](https://github.com/yazelin/copilot-ralph) (19+ TS files):
+7 core files, ported from [copilot-ralph](https://github.com/doggy8088/copilot-ralph) (19+ TS files):
 
 ```
 src/ralph/
